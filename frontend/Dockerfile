@@ -1,6 +1,10 @@
 # Stage 1: Build React application
 FROM node:18-alpine AS build
 
+# Accept build argument for API URL (defaults to production URL)
+ARG REACT_APP_API_URL=https://naildbybola-backend.onrender.com/api
+ENV REACT_APP_API_URL=${REACT_APP_API_URL}
+
 # Set working directory
 WORKDIR /app
 
@@ -14,7 +18,8 @@ RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 # Copy source code
 COPY . .
 
-# Build the React app
+# Build the React app (with environment variable available)
+# React will replace process.env.REACT_APP_API_URL at build time
 RUN npm run build
 
 # Stage 2: Serve with nginx
