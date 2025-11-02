@@ -33,7 +33,18 @@ urlpatterns = [
     path('api/', include('apps.gallery.urls')),
 ]
 
-# Serve media files in development
+# Serve media files
+# Note: In production, media files should ideally be served via a CDN or cloud storage
+# For Render free tier (no persistent storage), files uploaded via admin will be lost on restart
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+else:
+    # Serve media files in production (not ideal, but necessary for free tier)
+    # TODO: Migrate to cloud storage (AWS S3, Cloudinary, etc.) for production
+    from django.views.static import serve
+    from django.urls import re_path
+    
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    ]
