@@ -1,0 +1,24 @@
+.env
+.env.local
+.env.*.local
+.cursor
+docker-compose.override.yml
+
+# Virtual environments
+my_venv/
+venv/
+env/
+ENV/
+.venv/
+virtualenv/
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+/staticfiles/
+/media/

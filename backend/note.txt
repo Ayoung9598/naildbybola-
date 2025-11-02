@@ -1,0 +1,19 @@
+Username : admin
+Password: ayomidemariam123
+
+docker-compose build frontend --no-cache
+docker-compose up frontend -d
+docker-compose restart backend
+
+################
+Booking is still not sending anything to the backend, no api call their as I am seeing a "local host 3000 says Thank you for your message! We will contact you soon to confirm your appointment.". Shouldn't there be api calls there and where is the backend?
+
+The share your experience button is not responsive so as to pop up the form, and I am sure there is no api call for that form submission too
+
+Also the view all button is not opening a dedicated page to view that particular service
+
+The newsletter should be at the buttom, not under our services, and it's also not responsive anyway
+
+
+Are all these happening because I am using html and js, and not react??
+#################

@@ -1,0 +1,59 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Python files
+*.py text eol=lf
+*.pyc binary
+*.pyo binary
+*.pyd binary
+
+# JavaScript/TypeScript files
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+
+# HTML/CSS files
+*.html text eol=lf
+*.css text eol=lf
+
+# Configuration files
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.conf text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Text files
+*.txt text eol=lf
+*.md text eol=lf
+*.rst text eol=lf
+
+# Django migration files
+**/migrations/*.py text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+
+# Editor files
+*.swp binary
+*.swo binary
+*~ binary
+
+# OS files
+.DS_Store binary
+Thumbs.db binary
+

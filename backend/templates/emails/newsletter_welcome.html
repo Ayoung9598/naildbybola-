@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Our Newsletter!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        .header {
+            background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+            padding: 50px 20px;
+            text-align: center;
+            color: white;
+        }
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        .header p {
+            font-size: 18px;
+            opacity: 0.95;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .welcome-icon {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .welcome-icon div {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+        }
+        .benefits-section {
+            background-color: #ffffff;
+            border: 2px solid #ec4899;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 25px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .benefit-item {
+            display: flex;
+            align-items: flex-start;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .benefit-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .benefit-text {
+            flex: 1;
+        }
+        .benefit-text strong {
+            color: #111827;
+            font-size: 16px;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .benefit-text span {
+            color: #374151;
+            font-size: 14px;
+        }
+        .social-section {
+            text-align: center;
+            margin: 30px 0;
+            padding: 25px;
+            background-color: #ffffff;
+            border: 2px solid #ec4899;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .social-link {
+            display: inline-block;
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+            border-radius: 50%;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            transition: transform 0.3s;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+            color: white;
+            padding: 16px 32px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #1f2937;
+            color: #9ca3af;
+            padding: 30px 20px;
+            text-align: center;
+            font-size: 13px;
+        }
+        .footer a {
+            color: #ec4899;
+            text-decoration: none;
+        }
+        @media only screen and (max-width: 600px) {
+            .content {
+                padding: 25px 20px;
+            }
+            .header {
+                padding: 40px 15px;
+            }
+            .social-links {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>✨ Welcome to Our Newsletter!</h1>
+            <p>Thank you for joining our beauty community</p>
+        </div>
+        
+        <div class="content">
+            <div class="welcome-icon">
+                <div>💅</div>
+            </div>
+            
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h2 style="color: #111827; font-size: 24px; margin-bottom: 10px;">
+                    Hello{% if subscriber.name %} {{ subscriber.name }}{% endif %}! 👋
+                </h2>
+                <p style="color: #6b7280; font-size: 16px;">
+                    We're thrilled to have you as part of our exclusive beauty community!
+                </p>
+            </div>
+            
+            <div class="benefits-section">
+                <h3 style="color: #111827; font-size: 20px; margin-bottom: 20px; text-align: center;">What You'll Receive:</h3>
+                
+                <div class="benefit-item">
+                    <span class="benefit-icon">💅</span>
+                    <div class="benefit-text">
+                        <strong>Latest Service Updates</strong>
+                        <span>Be the first to know about new nail and lash services</span>
+                    </div>
+                </div>
+                
+                <div class="benefit-item">
+                    <span class="benefit-icon">🎨</span>
+                    <div class="benefit-text">
+                        <strong>Beauty Tips & Trends</strong>
+                        <span>Expert advice for maintaining your gorgeous look</span>
+                    </div>
+                </div>
+                
+                <div class="benefit-item">
+                    <span class="benefit-icon">🎁</span>
+                    <div class="benefit-text">
+                        <strong>Exclusive Offers</strong>
+                        <span>Special discounts and promotions just for subscribers</span>
+                    </div>
+                </div>
+                
+                <div class="benefit-item">
+                    <span class="benefit-icon">📅</span>
+                    <div class="benefit-text">
+                        <strong>Appointment Reminders</strong>
+                        <span>Never miss your beauty appointments</span>
+                    </div>
+                </div>
+                
+                <div class="benefit-item">
+                    <span class="benefit-icon">✨</span>
+                    <div class="benefit-text">
+                        <strong>Behind-the-Scenes</strong>
+                        <span>See our latest work and studio updates</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="social-section">
+                <p style="color: #111827; font-weight: 600; margin-bottom: 10px;">Follow us on social media for daily inspiration:</p>
+                <div class="social-links">
+                    <a href="https://www.instagram.com/ibadan_nailandlashtech" class="social-link">IG</a>
+                    <a href="https://www.tiktok.com/@ibadan.nail.tech" class="social-link">TT</a>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <p style="color: #111827; font-size: 16px; margin-bottom: 15px;">
+                    <strong>Ready to book your next appointment?</strong>
+                </p>
+                <a href="https://naildbybola.onrender.com/booking" class="cta-button">
+                    Book Your Appointment
+                </a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Naildby_bola</strong></p>
+            <p>Professional Nail & Lash Services</p>
+            <p style="margin-top: 15px;">06, Akin Akinyemi Str, Ikolaba Main Estate<br>
+            Phone: +234 902 122 7325 | Email: oladunnimariam32@gmail.com</p>
+            <p style="margin-top: 15px; font-size: 12px;">
+                You can unsubscribe at any time by clicking the link in our emails.
+            </p>
+            <p style="margin-top: 10px; font-size: 12px;">
+                Thank you for choosing our services!
+            </p>
+        </div>
+    </div>
+</body>
+</html>
