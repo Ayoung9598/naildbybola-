@@ -43,11 +43,11 @@ class BookingRequestViewSet(viewsets.ModelViewSet):
     
     def send_booking_notification(self, booking):
         """Send email notification about new booking request (runs in background)."""
-        # Ensure Django is set up in this thread
-        import django
-        django.setup()
+        from django.db import connections
         
         try:
+            # Close any existing database connections for this thread
+            connections.close_all()
             subject = f"New Booking Request - {booking.customer_name}"
             
             # Create email content
@@ -71,13 +71,15 @@ class BookingRequestViewSet(viewsets.ModelViewSet):
             Please confirm this appointment.
             """
             
-            logger.info(f"Attempting to send booking notification email to {settings.EMAIL_HOST_USER}")
+            # Get admin email from settings or fallback
+            admin_email = getattr(settings, 'ADMIN_EMAIL', None) or settings.EMAIL_HOST_USER or settings.DEFAULT_FROM_EMAIL
+            logger.info(f"Attempting to send booking notification email to {admin_email}")
             result = send_mail(
                 subject=subject,
                 message=plain_message,
                 html_message=html_message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[settings.EMAIL_HOST_USER],  # Business owner email
+                recipient_list=[admin_email],  # Business owner email
                 fail_silently=False,  # Raise exception so we can log it
             )
             logger.info(f"Booking notification email sent successfully. Result: {result}")
@@ -104,11 +106,11 @@ class BookingRequestViewSet(viewsets.ModelViewSet):
     
     def send_confirmation_email(self, booking):
         """Send confirmation email to customer (runs in background)."""
-        # Ensure Django is set up in this thread
-        import django
-        django.setup()
+        from django.db import connections
         
         try:
+            # Close any existing database connections for this thread
+            connections.close_all()
             subject = f"Appointment Confirmed - {booking.service.name}"
             
             context = {

@@ -54,6 +54,13 @@ services:
         sync: false
       - key: DEFAULT_FROM_EMAIL
         sync: false
+      # Resend API configuration (works with Render free tier - no SMTP blocking)
+      # Get API key from: https://resend.com/api-keys
+      - key: RESEND_API_KEY
+        sync: false
+      # Business owner email (who receives notifications)
+      - key: ADMIN_EMAIL
+        sync: false
       - key: CORS_ALLOWED_ORIGINS
         value: https://naildbybola.onrender.com
       # Superuser creation (optional - set manually in Render Dashboard)

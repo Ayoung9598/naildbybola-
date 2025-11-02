@@ -77,17 +77,36 @@ else:
     print(f"⚠️  Cloudinary credentials not set. Missing: {', '.join(missing)}. Using local media storage (files won't persist on Render free tier).")
 
 # Email configuration for production
-# Use console backend if email credentials not set (for testing)
-if env('EMAIL_HOST_USER', default=''):
+# Render free tier blocks outbound SMTP, so we use Resend API (HTTP-based, works on free tier)
+resend_api_key = env('RESEND_API_KEY', default='').strip()
+
+if resend_api_key:
+    # Use Resend API (works with Render free tier - no SMTP needed)
+    EMAIL_BACKEND = 'config.email_backends.ResendEmailBackend'
+    RESEND_API_KEY = resend_api_key
+    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='onboarding@resend.dev')
+    # Admin email for notifications (separate from SMTP user)
+    ADMIN_EMAIL = env('ADMIN_EMAIL', default='')
+    # These are not used with Resend but kept for compatibility
+    EMAIL_HOST = 'api.resend.com'
+    EMAIL_PORT = 443
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = ADMIN_EMAIL or DEFAULT_FROM_EMAIL  # For backward compatibility
+    EMAIL_HOST_PASSWORD = ''
+    print(f"✅ Email configured with Resend API. From: {DEFAULT_FROM_EMAIL}, Admin: {ADMIN_EMAIL or 'Not set'}")
+elif env('EMAIL_HOST_USER', default='').strip():
+    # Fallback to SMTP (won't work on Render free tier, but useful for other deployments)
+    email_host_user = env('EMAIL_HOST_USER', default='').strip()
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
     EMAIL_PORT = env.int('EMAIL_PORT', default=587)
     EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
-    EMAIL_HOST_USER = env('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
-    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
+    EMAIL_HOST_USER = email_host_user
+    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='').strip()
+    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default=email_host_user)
+    print(f"⚠️  Using SMTP backend (may not work on Render free tier): {EMAIL_HOST}:{EMAIL_PORT}")
 else:
-    # Fallback to console backend if credentials not configured
+    # Fallback to console backend if no credentials configured
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     EMAIL_HOST = 'localhost'
     EMAIL_PORT = 587
