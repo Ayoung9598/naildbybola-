@@ -5,6 +5,7 @@ databases:
     databaseName: naildbybola_db
     user: naildbybola_user
 
+services:
   # Django Backend
   - type: web
     name: naildbybola-backend
