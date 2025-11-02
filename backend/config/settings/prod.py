@@ -38,15 +38,19 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Cloudinary configuration for media files (images, etc.)
 # Use Cloudinary if credentials are provided, otherwise fall back to local storage
-if env('CLOUDINARY_CLOUD_NAME', default=''):
+cloudinary_cloud_name = env('CLOUDINARY_CLOUD_NAME', default='').strip()
+cloudinary_api_key = env('CLOUDINARY_API_KEY', default='').strip()
+cloudinary_api_secret = env('CLOUDINARY_API_SECRET', default='').strip()
+
+if cloudinary_cloud_name and cloudinary_api_key and cloudinary_api_secret:
     import cloudinary
     import cloudinary.uploader
     import cloudinary.api
     
     CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': env('CLOUDINARY_CLOUD_NAME'),
-        'API_KEY': env('CLOUDINARY_API_KEY'),
-        'API_SECRET': env('CLOUDINARY_API_SECRET'),
+        'CLOUD_NAME': cloudinary_cloud_name,
+        'API_KEY': cloudinary_api_key,
+        'API_SECRET': cloudinary_api_secret,
     }
     
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
@@ -60,9 +64,17 @@ if env('CLOUDINARY_CLOUD_NAME', default=''):
     
     # Media files will be served from Cloudinary CDN
     MEDIA_URL = '/media/'  # This will be overridden by Cloudinary URLs
+    print(f"✅ Cloudinary configured successfully. Cloud Name: {cloudinary_cloud_name[:10]}...")
 else:
     # Fallback to local storage if Cloudinary not configured
-    print("⚠️  Cloudinary credentials not set. Using local media storage (files won't persist on Render free tier).")
+    missing = []
+    if not cloudinary_cloud_name:
+        missing.append('CLOUDINARY_CLOUD_NAME')
+    if not cloudinary_api_key:
+        missing.append('CLOUDINARY_API_KEY')
+    if not cloudinary_api_secret:
+        missing.append('CLOUDINARY_API_SECRET')
+    print(f"⚠️  Cloudinary credentials not set. Missing: {', '.join(missing)}. Using local media storage (files won't persist on Render free tier).")
 
 # Email configuration for production
 # Use console backend if email credentials not set (for testing)
