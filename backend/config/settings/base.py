@@ -49,7 +49,12 @@ LOCAL_APPS = [
     'apps.gallery',
 ]
 
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+# Config app for management commands
+CONFIG_APPS = [
+    'config',
+]
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS + CONFIG_APPS
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
