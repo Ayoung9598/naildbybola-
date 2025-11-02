@@ -2,16 +2,7 @@ services:
   # PostgreSQL Database
   - type: pserv
     name: naildbybola-db
-    env: docker
     plan: free
-    dockerfilePath: ./backend/Dockerfile
-    envVars:
-      - key: POSTGRES_DB
-        sync: false
-      - key: POSTGRES_USER
-        sync: false
-      - key: POSTGRES_PASSWORD
-        sync: false
 
   # Django Backend
   - type: web
@@ -26,31 +17,11 @@ services:
         generateValue: true
       - key: ALLOWED_HOSTS
         value: naildbybola-backend.onrender.com
-      - key: DB_NAME
+      - key: DATABASE_URL
         fromService:
           type: pserv
           name: naildbybola-db
-          property: database
-      - key: DB_USER
-        fromService:
-          type: pserv
-          name: naildbybola-db
-          property: user
-      - key: DB_PASSWORD
-        fromService:
-          type: pserv
-          name: naildbybola-db
-          property: password
-      - key: DB_HOST
-        fromService:
-          type: pserv
-          name: naildbybola-db
-          property: host
-      - key: DB_PORT
-        fromService:
-          type: pserv
-          name: naildbybola-db
-          property: port
+          property: connectionString
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings.prod
       - key: EMAIL_HOST
@@ -68,7 +39,6 @@ services:
       - key: CORS_ALLOWED_ORIGINS
         value: https://naildbybola.onrender.com
     buildCommand: pip install -r requirements.txt && python manage.py migrate && python manage.py collectstatic --noinput
-    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
 
   # React Frontend (using Docker)
   - type: web
