@@ -5,8 +5,11 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
 import threading
+import logging
 from .models import BookingRequest
 from .serializers import BookingRequestSerializer
+
+logger = logging.getLogger(__name__)
 
 
 class BookingRequestViewSet(viewsets.ModelViewSet):
@@ -40,6 +43,10 @@ class BookingRequestViewSet(viewsets.ModelViewSet):
     
     def send_booking_notification(self, booking):
         """Send email notification about new booking request (runs in background)."""
+        # Ensure Django is set up in this thread
+        import django
+        django.setup()
+        
         try:
             subject = f"New Booking Request - {booking.customer_name}"
             
@@ -64,17 +71,19 @@ class BookingRequestViewSet(viewsets.ModelViewSet):
             Please confirm this appointment.
             """
             
-            send_mail(
+            logger.info(f"Attempting to send booking notification email to {settings.EMAIL_HOST_USER}")
+            result = send_mail(
                 subject=subject,
                 message=plain_message,
                 html_message=html_message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[settings.EMAIL_HOST_USER],  # Business owner email
-                fail_silently=True,  # Don't raise exception in background thread
+                fail_silently=False,  # Raise exception so we can log it
             )
+            logger.info(f"Booking notification email sent successfully. Result: {result}")
         except Exception as e:
             # Log error but don't fail (already saved to database)
-            print(f"Failed to send booking notification: {e}")
+            logger.error(f"Failed to send booking notification: {e}", exc_info=True)
     
     @action(detail=True, methods=['post'])
     def confirm(self, request, pk=None):
@@ -95,6 +104,10 @@ class BookingRequestViewSet(viewsets.ModelViewSet):
     
     def send_confirmation_email(self, booking):
         """Send confirmation email to customer (runs in background)."""
+        # Ensure Django is set up in this thread
+        import django
+        django.setup()
+        
         try:
             subject = f"Appointment Confirmed - {booking.service.name}"
             
@@ -115,14 +128,16 @@ class BookingRequestViewSet(viewsets.ModelViewSet):
             We look forward to seeing you!
             """
             
-            send_mail(
+            logger.info(f"Attempting to send confirmation email to {booking.customer_email}")
+            result = send_mail(
                 subject=subject,
                 message=plain_message,
                 html_message=html_message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[booking.customer_email],
-                fail_silently=True,  # Don't raise exception in background thread
+                fail_silently=False,  # Raise exception so we can log it
             )
+            logger.info(f"Confirmation email sent successfully. Result: {result}")
         except Exception as e:
             # Log error but don't fail (booking already confirmed)
-            print(f"Failed to send confirmation email: {e}")
+            logger.error(f"Failed to send confirmation email: {e}", exc_info=True)

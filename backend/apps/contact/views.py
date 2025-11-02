@@ -6,8 +6,11 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils import timezone
 import threading
+import logging
 from .models import ContactMessage, NewsletterSubscriber
 from .serializers import ContactMessageSerializer, NewsletterSubscriberSerializer
+
+logger = logging.getLogger(__name__)
 
 
 class ContactMessageViewSet(viewsets.ModelViewSet):
@@ -41,6 +44,10 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
     
     def send_contact_notification(self, message):
         """Send email notification about new contact message (runs in background)."""
+        # Ensure Django is set up in this thread
+        import django
+        django.setup()
+        
         try:
             subject = f"New Contact Message - {message.subject}"
             
@@ -63,17 +70,19 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
             {message.message}
             """
             
-            send_mail(
+            logger.info(f"Attempting to send contact notification email to {settings.EMAIL_HOST_USER}")
+            result = send_mail(
                 subject=subject,
                 message=plain_message,
                 html_message=html_message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[settings.EMAIL_HOST_USER],  # Business owner email
-                fail_silently=True,  # Don't raise exception in background thread
+                fail_silently=False,  # Raise exception so we can log it
             )
+            logger.info(f"Contact notification email sent successfully. Result: {result}")
         except Exception as e:
             # Log error but don't fail (already saved to database)
-            print(f"Failed to send contact notification: {e}")
+            logger.error(f"Failed to send contact notification: {e}", exc_info=True)
     
     @action(detail=True, methods=['post'])
     def mark_read(self, request, pk=None):
@@ -114,6 +123,10 @@ class NewsletterSubscriberViewSet(viewsets.ModelViewSet):
     
     def send_welcome_email(self, subscriber):
         """Send welcome email to new subscriber (runs in background)."""
+        # Ensure Django is set up in this thread
+        import django
+        django.setup()
+        
         try:
             subject = "Welcome to our newsletter!"
             
@@ -132,17 +145,19 @@ class NewsletterSubscriberViewSet(viewsets.ModelViewSet):
             The Nail & Lash Team
             """
             
-            send_mail(
+            logger.info(f"Attempting to send welcome email to {subscriber.email}")
+            result = send_mail(
                 subject=subject,
                 message=plain_message,
                 html_message=html_message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[subscriber.email],
-                fail_silently=True,  # Don't raise exception in background thread
+                fail_silently=False,  # Raise exception so we can log it
             )
+            logger.info(f"Welcome email sent successfully. Result: {result}")
         except Exception as e:
             # Log error but don't fail (already saved to database)
-            print(f"Failed to send welcome email: {e}")
+            logger.error(f"Failed to send welcome email: {e}", exc_info=True)
     
     @action(detail=True, methods=['post'])
     def unsubscribe(self, request, pk=None):
