@@ -46,20 +46,31 @@ class GalleryImage(models.Model):
         """Override save to auto-generate thumbnail if not provided."""
         super().save(*args, **kwargs)
         
-        # Auto-generate thumbnail if not provided
+        # Auto-generate thumbnail if not provided and using local storage
+        # Note: With Cloudinary, thumbnails can be generated on-the-fly via URL transformations
+        # So we skip auto-generation when using Cloudinary
         if not self.thumbnail and self.image:
-            from PIL import Image
-            import os
-            
-            # Create thumbnail
-            img = Image.open(self.image.path)
-            img.thumbnail((300, 300), Image.Resampling.LANCZOS)
-            
-            # Save thumbnail
-            thumb_path = self.image.path.replace('gallery/', 'gallery/thumbnails/')
-            thumb_dir = os.path.dirname(thumb_path)
-            os.makedirs(thumb_dir, exist_ok=True)
-            
-            img.save(thumb_path)
-            self.thumbnail.name = thumb_path.replace(settings.MEDIA_ROOT + '/', '')
-            super().save(*args, **kwargs)
+            # Check if using Cloudinary (Cloudinary URLs don't have .path attribute)
+            try:
+                # If image has .path, it's local storage
+                if hasattr(self.image, 'path'):
+                    from PIL import Image
+                    import os
+                    
+                    # Create thumbnail
+                    img = Image.open(self.image.path)
+                    img.thumbnail((300, 300), Image.Resampling.LANCZOS)
+                    
+                    # Save thumbnail
+                    thumb_path = self.image.path.replace('gallery/', 'gallery/thumbnails/')
+                    thumb_dir = os.path.dirname(thumb_path)
+                    os.makedirs(thumb_dir, exist_ok=True)
+                    
+                    img.save(thumb_path)
+                    self.thumbnail.name = thumb_path.replace(settings.MEDIA_ROOT + '/', '')
+                    super().save(*args, **kwargs)
+                # else: Using Cloudinary - thumbnails generated via URL transformations
+            except (AttributeError, OSError):
+                # Cloudinary storage - skip thumbnail generation
+                # Thumbnails can be generated via Cloudinary URL transformations instead
+                pass

@@ -36,6 +36,34 @@ else:
 # Static files for production
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# Cloudinary configuration for media files (images, etc.)
+# Use Cloudinary if credentials are provided, otherwise fall back to local storage
+if env('CLOUDINARY_CLOUD_NAME', default=''):
+    import cloudinary
+    import cloudinary.uploader
+    import cloudinary.api
+    
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': env('CLOUDINARY_CLOUD_NAME'),
+        'API_KEY': env('CLOUDINARY_API_KEY'),
+        'API_SECRET': env('CLOUDINARY_API_SECRET'),
+    }
+    
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    
+    # Configure Cloudinary
+    cloudinary.config(
+        cloud_name=CLOUDINARY_STORAGE['CLOUD_NAME'],
+        api_key=CLOUDINARY_STORAGE['API_KEY'],
+        api_secret=CLOUDINARY_STORAGE['API_SECRET'],
+    )
+    
+    # Media files will be served from Cloudinary CDN
+    MEDIA_URL = '/media/'  # This will be overridden by Cloudinary URLs
+else:
+    # Fallback to local storage if Cloudinary not configured
+    print("⚠️  Cloudinary credentials not set. Using local media storage (files won't persist on Render free tier).")
+
 # Email configuration for production
 # Use console backend if email credentials not set (for testing)
 if env('EMAIL_HOST_USER', default=''):

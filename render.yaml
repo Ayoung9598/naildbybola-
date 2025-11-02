@@ -64,6 +64,14 @@ services:
         sync: false
       - key: DJANGO_SUPERUSER_PASSWORD
         sync: false
+      # Cloudinary configuration (for media file storage - set manually in Render Dashboard)
+      # Get these from: https://cloudinary.com/console
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
     # Note: Migrations run in entrypoint.sh at runtime (database credentials needed)
     # Static files collection happens in buildCommand (doesn't need database)
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput

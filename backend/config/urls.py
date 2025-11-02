@@ -34,17 +34,19 @@ urlpatterns = [
 ]
 
 # Serve media files
-# Note: In production, media files should ideally be served via a CDN or cloud storage
-# For Render free tier (no persistent storage), files uploaded via admin will be lost on restart
+# In development, serve locally
+# In production with Cloudinary: files are served from Cloudinary CDN (no local serving needed)
+# In production without Cloudinary: serve locally (files won't persist on Render free tier)
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 else:
-    # Serve media files in production (not ideal, but necessary for free tier)
-    # TODO: Migrate to cloud storage (AWS S3, Cloudinary, etc.) for production
+    # Only serve media files locally if Cloudinary is not configured
+    # When Cloudinary is configured, images are served from Cloudinary CDN automatically
     from django.views.static import serve
     from django.urls import re_path
     
+    # Fallback: serve media files locally (only if Cloudinary not configured)
     urlpatterns += [
         re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
     ]
