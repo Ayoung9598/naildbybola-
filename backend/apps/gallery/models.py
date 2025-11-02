@@ -44,16 +44,19 @@ class GalleryImage(models.Model):
     
     def save(self, *args, **kwargs):
         """Override save to auto-generate thumbnail if not provided."""
+        # Check if using Cloudinary storage
+        is_cloudinary = 'cloudinary' in settings.DEFAULT_FILE_STORAGE.lower() if hasattr(settings, 'DEFAULT_FILE_STORAGE') else False
+        
         super().save(*args, **kwargs)
         
         # Auto-generate thumbnail if not provided and using local storage
         # Note: With Cloudinary, thumbnails can be generated on-the-fly via URL transformations
         # So we skip auto-generation when using Cloudinary
-        if not self.thumbnail and self.image:
-            # Check if using Cloudinary (Cloudinary URLs don't have .path attribute)
+        if not self.thumbnail and self.image and not is_cloudinary:
+            # Only generate thumbnail for local storage
             try:
-                # If image has .path, it's local storage
-                if hasattr(self.image, 'path'):
+                # Check if image has .path (local storage)
+                if hasattr(self.image, 'path') and self.image.path:
                     from PIL import Image
                     import os
                     
@@ -69,8 +72,7 @@ class GalleryImage(models.Model):
                     img.save(thumb_path)
                     self.thumbnail.name = thumb_path.replace(settings.MEDIA_ROOT + '/', '')
                     super().save(*args, **kwargs)
-                # else: Using Cloudinary - thumbnails generated via URL transformations
-            except (AttributeError, OSError):
-                # Cloudinary storage - skip thumbnail generation
+            except (AttributeError, OSError, Exception):
+                # Cloudinary storage or any error - skip thumbnail generation
                 # Thumbnails can be generated via Cloudinary URL transformations instead
                 pass
