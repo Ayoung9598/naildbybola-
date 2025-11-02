@@ -32,18 +32,10 @@ python manage.py migrate --noinput
 echo "📦 Collecting static files..."
 python manage.py collectstatic --noinput || echo "⚠️  Static files collection failed (may not be critical)"
 
-# Create superuser if it doesn't exist (optional - you can remove this if not needed)
-# echo "👤 Checking for superuser..."
-# python manage.py shell << EOF
-# from django.contrib.auth import get_user_model
-# User = get_user_model()
-# if not User.objects.filter(username='admin').exists():
-#     print("Creating default superuser...")
-#     User.objects.create_superuser('admin', 'admin@example.com', 'changeme123')
-#     print("Superuser created: username=admin, password=changeme123")
-# else:
-#     print("Superuser already exists")
-# EOF
+# Create superuser from environment variables (if set)
+# This works on Render free tier without shell access
+echo "👤 Checking for superuser creation..."
+python manage.py create_superuser_from_env || echo "⚠️  Superuser creation skipped (env vars not set or already exists)"
 
 echo "🎯 Starting Gunicorn..."
 exec "$@"
