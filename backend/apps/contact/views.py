@@ -5,6 +5,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils import timezone
+import threading
 from .models import ContactMessage, NewsletterSubscriber
 from .serializers import ContactMessageSerializer, NewsletterSubscriberSerializer
 
@@ -23,12 +24,13 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
         # Create the contact message
         message = serializer.save()
         
-        # Send email notification to business owner
-        try:
-            self.send_contact_notification(message)
-        except Exception as e:
-            # Log error but don't fail the message creation
-            print(f"Failed to send contact notification: {e}")
+        # Send email notification in background (don't block response)
+        email_thread = threading.Thread(
+            target=self.send_contact_notification,
+            args=(message,),
+            daemon=True
+        )
+        email_thread.start()
         
         headers = self.get_success_headers(serializer.data)
         return Response(
@@ -38,36 +40,40 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
         )
     
     def send_contact_notification(self, message):
-        """Send email notification about new contact message."""
-        subject = f"New Contact Message - {message.subject}"
-        
-        # Create email content
-        context = {
-            'message': message,
-        }
-        
-        html_message = render_to_string('emails/contact_notification.html', context)
-        plain_message = f"""
-        New contact message received:
-        
-        From: {message.name}
-        Email: {message.email}
-        Phone: {message.phone or 'Not provided'}
-        Subject: {message.subject}
-        Type: {message.get_subject_type_display()}
-        
-        Message:
-        {message.message}
-        """
-        
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            html_message=html_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[settings.EMAIL_HOST_USER],  # Business owner email
-            fail_silently=False,
-        )
+        """Send email notification about new contact message (runs in background)."""
+        try:
+            subject = f"New Contact Message - {message.subject}"
+            
+            # Create email content
+            context = {
+                'message': message,
+            }
+            
+            html_message = render_to_string('emails/contact_notification.html', context)
+            plain_message = f"""
+            New contact message received:
+            
+            From: {message.name}
+            Email: {message.email}
+            Phone: {message.phone or 'Not provided'}
+            Subject: {message.subject}
+            Type: {message.get_subject_type_display()}
+            
+            Message:
+            {message.message}
+            """
+            
+            send_mail(
+                subject=subject,
+                message=plain_message,
+                html_message=html_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[settings.EMAIL_HOST_USER],  # Business owner email
+                fail_silently=True,  # Don't raise exception in background thread
+            )
+        except Exception as e:
+            # Log error but don't fail (already saved to database)
+            print(f"Failed to send contact notification: {e}")
     
     @action(detail=True, methods=['post'])
     def mark_read(self, request, pk=None):
@@ -91,11 +97,13 @@ class NewsletterSubscriberViewSet(viewsets.ModelViewSet):
         
         subscriber = serializer.save()
         
-        # Send welcome email
-        try:
-            self.send_welcome_email(subscriber)
-        except Exception as e:
-            print(f"Failed to send welcome email: {e}")
+        # Send welcome email in background (don't block response)
+        email_thread = threading.Thread(
+            target=self.send_welcome_email,
+            args=(subscriber,),
+            daemon=True
+        )
+        email_thread.start()
         
         headers = self.get_success_headers(serializer.data)
         return Response(
@@ -105,32 +113,36 @@ class NewsletterSubscriberViewSet(viewsets.ModelViewSet):
         )
     
     def send_welcome_email(self, subscriber):
-        """Send welcome email to new subscriber."""
-        subject = "Welcome to our newsletter!"
-        
-        context = {
-            'subscriber': subscriber,
-        }
-        
-        html_message = render_to_string('emails/newsletter_welcome.html', context)
-        plain_message = f"""
-        Welcome to our newsletter, {subscriber.name or 'there'}!
-        
-        Thank you for subscribing. You'll receive updates about our latest services, 
-        special offers, and beauty tips.
-        
-        Best regards,
-        The Nail & Lash Team
-        """
-        
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            html_message=html_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[subscriber.email],
-            fail_silently=False,
-        )
+        """Send welcome email to new subscriber (runs in background)."""
+        try:
+            subject = "Welcome to our newsletter!"
+            
+            context = {
+                'subscriber': subscriber,
+            }
+            
+            html_message = render_to_string('emails/newsletter_welcome.html', context)
+            plain_message = f"""
+            Welcome to our newsletter, {subscriber.name or 'there'}!
+            
+            Thank you for subscribing. You'll receive updates about our latest services, 
+            special offers, and beauty tips.
+            
+            Best regards,
+            The Nail & Lash Team
+            """
+            
+            send_mail(
+                subject=subject,
+                message=plain_message,
+                html_message=html_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[subscriber.email],
+                fail_silently=True,  # Don't raise exception in background thread
+            )
+        except Exception as e:
+            # Log error but don't fail (already saved to database)
+            print(f"Failed to send welcome email: {e}")
     
     @action(detail=True, methods=['post'])
     def unsubscribe(self, request, pk=None):
