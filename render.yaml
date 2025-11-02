@@ -12,6 +12,7 @@ services:
     env: docker
     plan: free
     dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     envVars:
       - key: DEBUG
         value: "False"
