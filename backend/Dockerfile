@@ -28,13 +28,20 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project
 COPY . /app/
 
+# Copy entrypoint script and make it executable
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Create directories for media and static files
 RUN mkdir -p /app/media /app/staticfiles
 
 # Expose port
 EXPOSE 8000
 
+# Set entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]
+
 # Run the application
 # For production, use gunicorn (Render sets PORT environment variable)
-# Use shell form to allow environment variable substitution
+# The entrypoint script will run migrations before starting gunicorn
 CMD ["sh", "-c", "gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --threads 2 --timeout 60"]
