@@ -19,23 +19,32 @@ class ResendEmailBackend(BaseEmailBackend):
     
     def __init__(self, fail_silently=False, **kwargs):
         super().__init__(fail_silently=fail_silently, **kwargs)
+        
+        # Check if resend package is installed
+        if not resend:
+            logger.error("❌ Resend package not installed. Install with: pip install resend")
+            self.resend_api_key = None
+            self.from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@naildbybola.com')
+            return
+        
+        # Get API key from settings (always set, even if empty)
         self.resend_api_key = getattr(settings, 'RESEND_API_KEY', None)
         self.from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@naildbybola.com')
         
-        if not resend:
-            logger.error("❌ Resend package not installed. Install with: pip install resend")
-            return
-        
-        if not self.resend_api_key:
-            logger.warning("⚠️  RESEND_API_KEY not set in settings. Emails will not be sent.")
+        # Check if API key is set and not empty
+        if not self.resend_api_key or not self.resend_api_key.strip():
+            logger.warning("⚠️  RESEND_API_KEY not set or empty in settings. Emails will not be sent.")
+            logger.warning(f"   Current value: {repr(self.resend_api_key)}")
+            logger.warning(f"   Set RESEND_API_KEY in Render Dashboard → Environment variables")
             return
         
         # Set Resend API key
         try:
-            resend.api_key = self.resend_api_key
+            resend.api_key = self.resend_api_key.strip()
             logger.info(f"✅ Resend API key configured (length: {len(self.resend_api_key)})")
         except Exception as e:
             logger.error(f"❌ Failed to set Resend API key: {e}")
+            self.resend_api_key = None
     
     def send_messages(self, email_messages):
         """Send email messages using Resend API."""
