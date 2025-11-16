@@ -2,7 +2,11 @@ from django.contrib import admin
 from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
+import threading
+import logging
 from .models import BookingRequest
+
+logger = logging.getLogger(__name__)
 
 
 @admin.register(BookingRequest)
@@ -41,17 +45,23 @@ class BookingRequestAdmin(admin.ModelAdmin):
             super().save_model(request, obj, form, change)
             # Send email if status changed from non-confirmed to confirmed
             if old_status != 'confirmed' and obj.status == 'confirmed':
-                self.send_confirmation_email(obj)
+                # Send confirmation email in background (don't block admin save)
+                email_thread = threading.Thread(
+                    target=self.send_confirmation_email,
+                    args=(obj,),
+                    daemon=True
+                )
+                email_thread.start()
         else:
             super().save_model(request, obj, form, change)
     
     def send_confirmation_email(self, booking):
-        """Send confirmation email to customer."""
+        """Send confirmation email to customer (runs in background)."""
+        from django.db import connections
+        
         try:
-            from django.conf import settings
-            from django.template.loader import render_to_string
-            from django.core.mail import send_mail
-            
+            # Close any existing database connections for this thread
+            connections.close_all()
             subject = f"Appointment Confirmed - {booking.service.name}"
             
             context = {
@@ -71,16 +81,19 @@ class BookingRequestAdmin(admin.ModelAdmin):
             We look forward to seeing you!
             """
             
-            send_mail(
+            logger.info(f"Attempting to send confirmation email to {booking.customer_email}")
+            result = send_mail(
                 subject=subject,
                 message=plain_message,
                 html_message=html_message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[booking.customer_email],
-                fail_silently=False,
+                fail_silently=False,  # Raise exception so we can log it
             )
+            logger.info(f"Confirmation email sent successfully. Result: {result}")
         except Exception as e:
-            print(f"Failed to send confirmation email: {e}")
+            # Log error but don't fail (booking already confirmed)
+            logger.error(f"Failed to send confirmation email: {e}", exc_info=True)
     
     def mark_confirmed(self, request, queryset):
         """Mark bookings as confirmed and send confirmation emails."""
@@ -88,7 +101,13 @@ class BookingRequestAdmin(admin.ModelAdmin):
             if booking.status != 'confirmed':
                 booking.status = 'confirmed'
                 booking.save()
-                self.send_confirmation_email(booking)
+                # Send confirmation email in background (don't block admin action)
+                email_thread = threading.Thread(
+                    target=self.send_confirmation_email,
+                    args=(booking,),
+                    daemon=True
+                )
+                email_thread.start()
         self.message_user(request, f'{queryset.count()} bookings marked as confirmed.')
     mark_confirmed.short_description = "Mark selected bookings as confirmed"
     

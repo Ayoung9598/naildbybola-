@@ -108,13 +108,16 @@ class NewsletterSubscriberViewSet(viewsets.ModelViewSet):
         
         subscriber = serializer.save()
         
-        # Send welcome email in background (don't block response)
-        email_thread = threading.Thread(
-            target=self.send_welcome_email,
-            args=(subscriber,),
-            daemon=True
-        )
-        email_thread.start()
+        # Send welcome email in background only for new or reactivated subscribers
+        # Check if this is a new subscriber (set by serializer)
+        is_new = getattr(subscriber, '_is_new_subscriber', True)
+        if is_new:
+            email_thread = threading.Thread(
+                target=self.send_welcome_email,
+                args=(subscriber,),
+                daemon=True
+            )
+            email_thread.start()
         
         headers = self.get_success_headers(serializer.data)
         return Response(

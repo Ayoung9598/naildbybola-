@@ -33,10 +33,15 @@ class NewsletterSubscriberSerializer(serializers.ModelSerializer):
         )
         
         # If subscriber exists but is inactive, reactivate them
+        is_reactivated = False
         if not created and not subscriber.is_active:
             subscriber.is_active = True
             subscriber.name = validated_data.get('name', subscriber.name)
             subscriber.unsubscribed_at = None
             subscriber.save()
+            is_reactivated = True
+        
+        # Store flag to indicate if this is a new subscriber (for welcome email)
+        subscriber._is_new_subscriber = created or is_reactivated
         
         return subscriber
