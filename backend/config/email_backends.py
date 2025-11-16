@@ -148,7 +148,10 @@ class ResendEmailBackend(BaseEmailBackend):
                 
                 # Send via Resend API
                 # Resend v1.0.0 uses resend.Emails.send() with params dict
-                logger.info(f"Sending email via Resend to {to_emails} from {email_data.get('from')}")
+                logger.info(f"📧 Sending email via Resend")
+                logger.info(f"   From: {email_data.get('from')}")
+                logger.info(f"   To: {to_emails_list}")
+                logger.info(f"   Subject: {email_data.get('subject')}")
                 logger.debug(f"Email data: subject={email_data.get('subject')}, has_html={bool(email_data.get('html'))}, has_text={bool(email_data.get('text'))}")
                 
                 # Ensure API key is set (in case it wasn't set during init)
@@ -157,8 +160,51 @@ class ResendEmailBackend(BaseEmailBackend):
                     logger.info("✅ Resend API key set before sending")
                 
                 # Call Resend API - use the correct format from documentation
-                result = resend.Emails.send(email_data)
+                logger.info(f"   Calling Resend API...")
+                try:
+                    result = resend.Emails.send(email_data)
+                except Exception as api_error:
+                    # Catch Resend API exceptions and log them clearly
+                    logger.error(f"   ❌ Resend API call failed: {api_error}")
+                    logger.error(f"   Error type: {type(api_error).__name__}")
+                    # Try to extract more details from the exception
+                    if hasattr(api_error, 'message'):
+                        logger.error(f"   Error message: {api_error.message}")
+                    if hasattr(api_error, 'status_code'):
+                        logger.error(f"   Status code: {api_error.status_code}")
+                    if hasattr(api_error, 'response'):
+                        logger.error(f"   Response: {api_error.response}")
+                    # Log the full exception string
+                    logger.error(f"   Full error: {str(api_error)}")
+                    raise  # Re-raise to be caught by outer exception handler
                 
+                # Log the full result for debugging (use info so it shows in Render logs)
+                logger.info(f"   Resend API response received")
+                logger.info(f"   Response type: {type(result).__name__}")
+                if hasattr(result, '__dict__'):
+                    logger.info(f"   Response attributes: {[attr for attr in dir(result) if not attr.startswith('_')]}")
+                if isinstance(result, dict):
+                    logger.info(f"   Response dict: {result}")
+                elif hasattr(result, 'id'):
+                    logger.info(f"   Response ID: {result.id}")
+                
+                # Check for errors in result
+                if hasattr(result, 'error'):
+                    error_msg = f"❌ Resend API error: {result.error}"
+                    logger.error(error_msg)
+                    if not self.fail_silently:
+                        raise ValueError(error_msg)
+                    continue
+                
+                # Check if result is a dict with error
+                if isinstance(result, dict) and result.get('error'):
+                    error_msg = f"❌ Resend API error: {result.get('error')}"
+                    logger.error(error_msg)
+                    if not self.fail_silently:
+                        raise ValueError(error_msg)
+                    continue
+                
+                # Check for success (message ID indicates success)
                 if result and hasattr(result, 'id'):
                     sent_count += 1
                     logger.info(f"✅ Email sent successfully via Resend. Message ID: {result.id}")
@@ -169,14 +215,30 @@ class ResendEmailBackend(BaseEmailBackend):
                     sent_count += 1
                     logger.info(f"✅ Email sent successfully via Resend. Result: {result}")
                 else:
-                    logger.error(f"❌ Resend API returned no result for email to {to_emails}")
+                    error_msg = f"❌ Resend API returned no result for email to {to_emails}"
+                    logger.error(error_msg)
+                    logger.error(f"   Full result object: {result}")
                     if not self.fail_silently:
-                        raise ValueError(f"Resend API returned no result for email to {to_emails}")
+                        raise ValueError(error_msg)
                     
             except Exception as e:
                 error_msg = f"❌ Failed to send email via Resend to {to_emails}: {str(e)}"
                 logger.error(error_msg, exc_info=True)
                 logger.error(f"Email data was: {email_data}")
+                logger.error(f"Exception type: {type(e).__name__}")
+                
+                # Check for specific Resend API errors
+                error_str = str(e).lower()
+                if 'unauthorized' in error_str or 'invalid api key' in error_str:
+                    logger.error("   ⚠️  This looks like an API key issue. Check RESEND_API_KEY in environment variables.")
+                elif 'domain' in error_str or 'from' in error_str or 'sender' in error_str:
+                    logger.error("   ⚠️  This looks like a 'from' address issue.")
+                    logger.error("   💡 Resend's test domain (onboarding@resend.dev) may have restrictions.")
+                    logger.error("   💡 Try verifying your domain in Resend Dashboard or use a verified email.")
+                elif 'recipient' in error_str or 'to' in error_str:
+                    logger.error("   ⚠️  This looks like a recipient address issue.")
+                    logger.error("   💡 Resend's test domain may only allow sending to verified addresses.")
+                
                 if not self.fail_silently:
                     raise Exception(error_msg) from e
         
