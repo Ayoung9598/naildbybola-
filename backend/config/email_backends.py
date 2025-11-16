@@ -8,10 +8,25 @@ from django.template.loader import render_to_string
 
 logger = logging.getLogger(__name__)
 
+# Try to import resend package
+resend = None
+resend_import_error = None
 try:
     import resend
-except ImportError:
-    resend = None
+    # Verify it has the Emails attribute we need
+    if hasattr(resend, 'Emails'):
+        logger.info("✅ Resend package imported successfully")
+    else:
+        logger.error("❌ Resend package imported but missing 'Emails' attribute")
+        resend = None
+except ImportError as e:
+    resend_import_error = str(e)
+    logger.error(f"❌ Failed to import resend package: {e}")
+    logger.error("   Make sure 'resend' is in requirements.txt and installed")
+    logger.error("   Try: pip install resend==1.0.0")
+except Exception as e:
+    resend_import_error = str(e)
+    logger.error(f"❌ Unexpected error importing resend package: {e}")
 
 
 class ResendEmailBackend(BaseEmailBackend):
@@ -22,7 +37,10 @@ class ResendEmailBackend(BaseEmailBackend):
         
         # Check if resend package is installed
         if not resend:
-            logger.error("❌ Resend package not installed. Install with: pip install resend")
+            error_msg = "❌ Resend package not installed. Install with: pip install resend"
+            if resend_import_error:
+                error_msg += f"\n   Import error: {resend_import_error}"
+            logger.error(error_msg)
             self.resend_api_key = None
             self.from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@naildbybola.com')
             return
@@ -48,6 +66,27 @@ class ResendEmailBackend(BaseEmailBackend):
     
     def send_messages(self, email_messages):
         """Send email messages using Resend API."""
+        # Try to import resend again at runtime (in case it wasn't available at module load)
+        global resend
+        if not resend:
+            try:
+                import resend
+                logger.info("✅ Resend package imported successfully at runtime")
+                # Set API key if we just imported it
+                if self.resend_api_key:
+                    try:
+                        resend.api_key = self.resend_api_key.strip()
+                        logger.info(f"✅ Resend API key configured at runtime (length: {len(self.resend_api_key)})")
+                    except Exception as e:
+                        logger.error(f"❌ Failed to set Resend API key at runtime: {e}")
+            except ImportError as e:
+                logger.error(f"❌ Failed to import resend package at runtime: {e}")
+                logger.error("   This usually means the package isn't installed in the Docker container")
+                logger.error("   Check that 'resend==1.0.0' is in requirements.txt")
+                if not self.fail_silently:
+                    raise ValueError(f"Resend package not installed. Error: {e}. Install with: pip install resend==1.0.0")
+                return 0
+        
         if not resend or not self.resend_api_key:
             if not self.fail_silently:
                 raise ValueError("Resend not configured. Set RESEND_API_KEY in settings.")

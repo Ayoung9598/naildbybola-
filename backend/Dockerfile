@@ -23,7 +23,8 @@ RUN for i in 1 2 3; do \
 
 # Install Python dependencies
 COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip list | grep -i resend || echo "WARNING: resend package not found in pip list"
 
 # Copy project
 COPY . /app/
