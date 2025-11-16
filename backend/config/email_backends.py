@@ -4,7 +4,6 @@ Custom email backend using Resend API (works with Render free tier - no SMTP nee
 import logging
 from django.core.mail.backends.base import BaseEmailBackend
 from django.conf import settings
-from django.template.loader import render_to_string
 
 logger = logging.getLogger(__name__)
 

@@ -212,5 +212,10 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'config.email_backends': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
