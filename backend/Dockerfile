@@ -23,8 +23,18 @@ RUN for i in 1 2 3; do \
 
 # Install Python dependencies
 COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip list | grep -i resend || echo "WARNING: resend package not found in pip list"
+# Upgrade pip first, then install dependencies
+# Uninstall resend first if it exists (to avoid corrupted installs), then reinstall
+RUN pip install --upgrade pip setuptools wheel && \
+    pip uninstall -y resend || true && \
+    pip install --no-cache-dir -r requirements.txt && \
+    pip list | grep -i resend && \
+    python -c "import resend; print('✅ Resend package imported successfully')" && \
+    python -c "import resend; print(f'   Resend version: {getattr(resend, \"__version__\", \"unknown\")}')" || \
+    (echo "❌ Failed to import resend package - trying to reinstall" && \
+     pip uninstall -y resend && \
+     pip install --no-cache-dir --force-reinstall resend && \
+     python -c "import resend; print('✅ Resend package reinstalled and imported successfully')")
 
 # Copy project
 COPY . /app/

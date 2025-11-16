@@ -151,6 +151,12 @@ class ResendEmailBackend(BaseEmailBackend):
                 logger.info(f"Sending email via Resend to {to_emails} from {email_data.get('from')}")
                 logger.debug(f"Email data: subject={email_data.get('subject')}, has_html={bool(email_data.get('html'))}, has_text={bool(email_data.get('text'))}")
                 
+                # Ensure API key is set (in case it wasn't set during init)
+                if not hasattr(resend, 'api_key') or not resend.api_key:
+                    resend.api_key = self.resend_api_key.strip()
+                    logger.info("✅ Resend API key set before sending")
+                
+                # Call Resend API - use the correct format from documentation
                 result = resend.Emails.send(email_data)
                 
                 if result and hasattr(result, 'id'):
