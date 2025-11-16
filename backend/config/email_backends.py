@@ -22,10 +22,20 @@ class ResendEmailBackend(BaseEmailBackend):
         self.resend_api_key = getattr(settings, 'RESEND_API_KEY', None)
         self.from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@naildbybola.com')
         
-        if resend and self.resend_api_key:
+        if not resend:
+            logger.error("❌ Resend package not installed. Install with: pip install resend")
+            return
+        
+        if not self.resend_api_key:
+            logger.warning("⚠️  RESEND_API_KEY not set in settings. Emails will not be sent.")
+            return
+        
+        # Set Resend API key
+        try:
             resend.api_key = self.resend_api_key
-        elif not resend:
-            logger.warning("Resend package not installed. Install with: pip install resend")
+            logger.info(f"✅ Resend API key configured (length: {len(self.resend_api_key)})")
+        except Exception as e:
+            logger.error(f"❌ Failed to set Resend API key: {e}")
     
     def send_messages(self, email_messages):
         """Send email messages using Resend API."""
@@ -43,10 +53,17 @@ class ResendEmailBackend(BaseEmailBackend):
                     logger.warning("No recipients in email message")
                     continue
                 
+                # Resend v1.0.0 accepts both string and list for 'to'
+                # Convert to list if it's a single string
+                if isinstance(to_emails, str):
+                    to_emails_list = [to_emails]
+                else:
+                    to_emails_list = list(to_emails)
+                
                 # Prepare email data
                 email_data = {
                     "from": message.from_email or self.from_email,
-                    "to": to_emails,  # Resend accepts list of recipients
+                    "to": to_emails_list,  # Resend accepts list of recipients
                     "subject": message.subject,
                 }
                 
@@ -82,18 +99,32 @@ class ResendEmailBackend(BaseEmailBackend):
                         email_data["text"] = message.body
                 
                 # Send via Resend API
+                # Resend v1.0.0 uses resend.Emails.send() with params dict
+                logger.info(f"Sending email via Resend to {to_emails} from {email_data.get('from')}")
+                logger.debug(f"Email data: subject={email_data.get('subject')}, has_html={bool(email_data.get('html'))}, has_text={bool(email_data.get('text'))}")
+                
                 result = resend.Emails.send(email_data)
                 
-                if result:
+                if result and hasattr(result, 'id'):
                     sent_count += 1
-                    logger.info(f"Email sent successfully via Resend. Message ID: {result.get('id', 'unknown')}")
+                    logger.info(f"✅ Email sent successfully via Resend. Message ID: {result.id}")
+                elif result and isinstance(result, dict) and result.get('id'):
+                    sent_count += 1
+                    logger.info(f"✅ Email sent successfully via Resend. Message ID: {result.get('id')}")
+                elif result:
+                    sent_count += 1
+                    logger.info(f"✅ Email sent successfully via Resend. Result: {result}")
                 else:
-                    logger.warning(f"Resend API returned no result for email to {to_emails}")
+                    logger.error(f"❌ Resend API returned no result for email to {to_emails}")
+                    if not self.fail_silently:
+                        raise ValueError(f"Resend API returned no result for email to {to_emails}")
                     
             except Exception as e:
-                logger.error(f"Failed to send email via Resend: {e}", exc_info=True)
+                error_msg = f"❌ Failed to send email via Resend to {to_emails}: {str(e)}"
+                logger.error(error_msg, exc_info=True)
+                logger.error(f"Email data was: {email_data}")
                 if not self.fail_silently:
-                    raise
+                    raise Exception(error_msg) from e
         
         return sent_count
 
