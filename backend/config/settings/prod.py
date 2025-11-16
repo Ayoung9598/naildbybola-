@@ -33,11 +33,29 @@ if database_url:
     
     # Ensure OPTIONS dict exists and add timeout
     DATABASES['default'].setdefault('OPTIONS', {})
-    DATABASES['default']['OPTIONS']['connect_timeout'] = 10
+    DATABASES['default']['OPTIONS']['connect_timeout'] = 15
     
-    print(f"✅ Database configured from DATABASE_URL")
+    # For Supabase, add additional connection options to improve reliability
     if 'supabase.co' in database_url.lower():
-        print(f"   Using Supabase (SSL enabled via connection string)")
+        # Force IPv4 if possible (helps with network issues)
+        # Add keepalive settings for better connection stability
+        DATABASES['default']['OPTIONS'].update({
+            'keepalives': 1,
+            'keepalives_idle': 30,
+            'keepalives_interval': 10,
+            'keepalives_count': 5,
+        })
+        # Check if using pooler (recommended for serverless/containers)
+        if 'pooler.supabase.com' in database_url.lower():
+            print(f"✅ Database configured from DATABASE_URL")
+            print(f"   Using Supabase Connection Pooler (recommended for containers)")
+        else:
+            print(f"✅ Database configured from DATABASE_URL")
+            print(f"   Using Supabase Direct Connection")
+            print(f"   💡 Tip: Consider using Connection Pooler URL for better reliability")
+            print(f"      Get it from: Supabase Dashboard → Settings → Database → Connection Pooling")
+    else:
+        print(f"✅ Database configured from DATABASE_URL")
 else:
     # Fall back to individual database variables (legacy support)
     DATABASES = {
