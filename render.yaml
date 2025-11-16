@@ -1,9 +1,6 @@
-databases:
-  # PostgreSQL Database
-  - name: naildbybola-db
-    plan: free
-    databaseName: naildbybola_db
-    user: naildbybola_user
+# Database is now hosted on Supabase (external)
+# Add DATABASE_URL environment variable in Render Dashboard with your Supabase connection string
+# Format: postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
 
 services:
   # Django Backend
@@ -20,26 +17,12 @@ services:
         generateValue: true
       - key: ALLOWED_HOSTS
         value: naildbybola-backend.onrender.com
-      - key: DB_HOST
-        fromDatabase:
-          name: naildbybola-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: naildbybola-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: naildbybola-db
-          property: database
-      - key: DB_USER
-        fromDatabase:
-          name: naildbybola-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: naildbybola-db
-          property: password
+      # Database configuration - use Supabase (external)
+      # Add DATABASE_URL in Render Dashboard with your Supabase connection string
+      # Get it from: Supabase Dashboard → Settings → Database → Connection string (URI)
+      # Format: postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
+      - key: DATABASE_URL
+        sync: false
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings.prod
       - key: EMAIL_HOST

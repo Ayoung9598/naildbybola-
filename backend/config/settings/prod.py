@@ -12,13 +12,34 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
 # Database configuration for production
-# Use DATABASE_URL if available (from Render connectionString), otherwise use individual variables
-if env('DATABASE_URL', default=None):
+# Use DATABASE_URL if available (Supabase, Neon, etc.), otherwise use individual variables
+database_url = env('DATABASE_URL', default=None)
+if database_url:
+    # Supabase and other cloud providers require SSL
+    # Append sslmode=require to connection string if it's a Supabase URL and doesn't already have SSL params
+    import os
+    if 'supabase.co' in database_url.lower() and 'sslmode' not in database_url.lower():
+        # Append SSL mode to connection string
+        separator = '&' if '?' in database_url else '?'
+        database_url = f"{database_url}{separator}sslmode=require"
+        # Update the environment variable for django-environ to use
+        os.environ['DATABASE_URL'] = database_url
+    
+    # Parse DATABASE_URL and configure database
+    # Use env.db() which will read from the (potentially modified) DATABASE_URL
     DATABASES = {
         'default': env.db()
     }
+    
+    # Ensure OPTIONS dict exists and add timeout
+    DATABASES['default'].setdefault('OPTIONS', {})
+    DATABASES['default']['OPTIONS']['connect_timeout'] = 10
+    
+    print(f"✅ Database configured from DATABASE_URL")
+    if 'supabase.co' in database_url.lower():
+        print(f"   Using Supabase (SSL enabled via connection string)")
 else:
-    # Fall back to individual database variables from Render
+    # Fall back to individual database variables (legacy support)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -32,6 +53,7 @@ else:
             },
         }
     }
+    print(f"⚠️  Using individual database variables (legacy mode). Consider using DATABASE_URL for cloud providers.")
 
 # Static files for production
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
